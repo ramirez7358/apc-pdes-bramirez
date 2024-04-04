@@ -1,0 +1,6 @@
+[submodule "pdes-bramirez-backend"]
+	path = pdes-bramirez-backend
+	url = git@github.com:ramirez7358/pdes-bramirez-backend.git
+[submodule "pdes-bramirez-frontend"]
+	path = pdes-bramirez-frontend
+	url = git@github.com:ramirez7358/pdes-bramirez-frontend.git
