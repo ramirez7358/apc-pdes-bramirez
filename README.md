@@ -12,6 +12,9 @@ Repository that will contain the project for the subject 'Prácticas de Desarrol
 
 ### Frontend
 
+- React 18.2
+- Typescript 5.2.2
+- Vite 5.2
 
 
 ### Database
