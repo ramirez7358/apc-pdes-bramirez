@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   db:
+    container_name: apc-pdes-db
     image: postgres
     env_file:
       - ./pdes-bramirez-backend/.env
@@ -15,11 +16,91 @@ services:
       - db-data:/var/lib/postgresql/data
 
   backend:
+    container_name: apc-pdes-backend
     build: ./pdes-bramirez-backend
+    restart: unless-stopped
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://localhost:3100/loki/api/v1/push" 
     ports:
-      - "3000:3000"
+      - "3001:3001"
     depends_on:
       - db
+      - loki
+
+  grafana:
+    container_name: apc-pdes-grafana
+    image: grafana/grafana:8.0.6
+    restart: unless-stopped
+    volumes:
+    - grafana-data:/var/lib/grafana
+    ports:
+    - 3000:3000
+
+  prometheus:
+    container_name: apc-pdes-prometheus
+    image: prom/prometheus:v2.28.1
+    restart: unless-stopped
+    volumes:
+    - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    - prometheus-data:/prometheus
+    ports:
+    - 9090:9090
+    command:
+    - '--config.file=/etc/prometheus/prometheus.yml'
+    - '--storage.tsdb.path=/prometheus'
+    - '--storage.tsdb.retention.time=1y'
+    - '--web.enable-lifecycle'
+
+  node_exporter:
+    container_name: apc-pdes-node-exporter
+    image: quay.io/prometheus/node-exporter:latest
+    restart: unless-stopped
+    ports:
+      - 9100:9100
+    ###### linux
+    command:
+      - '--path.rootfs=/host'
+    pid: host
+    volumes:
+      - '/:/host:ro,rslave'
+    ###### windows
+    # volumes:
+    #   - /proc:/host/proc:ro
+    #   - /sys:/host/sys:ro
+    # command: 
+    #   - '--path.procfs=/host/proc' 
+    #   - '--path.sysfs=/host/sys'
+    #   - --collector.filesystem.ignored-mount-points
+    #   - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
+        
+  cadvisor:
+    container_name: apc-pdes-cadvisor
+    image: gcr.io/cadvisor/cadvisor:latest
+    restart: unless-stopped
+    expose:
+    - 8080
+    volumes:
+    - /:/rootfs:ro
+    - /var/run:/var/run:rw
+    - /sys:/sys:ro
+    - /var/lib/docker/:/var/lib/docker:ro
+
+  loki:
+    container_name: apc-pdes-loki
+    image: grafana/loki:2.0.0
+    restart: unless-stopped
+    volumes:
+    - ./loki-config.yml:/mnt/config/loki-config.yml
+    - loki-data:/loki
+    ports:
+    - 3100:3100
+    command: 
+    - '-config.file=/mnt/config/loki-config.yml'
 
 volumes:
   db-data:
+  grafana-data:
+  prometheus-data:
+  loki-data:
